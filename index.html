@@ -1,0 +1,701 @@
+```html
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>同人创作轮盘 · 无重复抽选</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            user-select: none;
+        }
+
+        body {
+            background: radial-gradient(circle at 10% 30%, #1a2a32, #0c151d);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-family: 'Segoe UI', 'Poppins', 'Quicksand', system-ui, -apple-system, 'Helvetica Neue', sans-serif;
+            padding: 20px;
+        }
+
+        /* 主容器 - 毛玻璃高级质感 */
+        .wheel-container {
+            max-width: 1400px;
+            width: 100%;
+            background: rgba(20, 30, 38, 0.6);
+            backdrop-filter: blur(12px);
+            border-radius: 72px;
+            padding: 28px 32px 36px;
+            box-shadow: 0 30px 50px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 210, 140, 0.4);
+            transition: all 0.3s ease;
+        }
+
+        /* 标题区 更有氛围 */
+        .title-section {
+            text-align: center;
+            margin-bottom: 28px;
+        }
+        h1 {
+            font-size: 2.7rem;
+            margin: 0;
+            background: linear-gradient(145deg, #FFE9C7, #FFBB77, #FF9F4A);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            text-shadow: 0 2px 8px rgba(0,0,0,0.2);
+            letter-spacing: 2px;
+            display: inline-flex;
+            align-items: center;
+            gap: 12px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+        .sub {
+            color: #cfebff;
+            font-size: 0.95rem;
+            margin-top: 12px;
+            background: rgba(0,0,0,0.45);
+            display: inline-block;
+            padding: 6px 24px;
+            border-radius: 60px;
+            backdrop-filter: blur(8px);
+            font-weight: 400;
+        }
+
+        /* 双栏布局 */
+        .main-dashboard {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 32px;
+            justify-content: center;
+            align-items: center;
+        }
+
+        /* 转盘区 */
+        .wheel-area {
+            flex: 2;
+            min-width: 320px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+        canvas {
+            background: #2c2118;
+            border-radius: 50%;
+            box-shadow: 0 25px 40px rgba(0, 0, 0, 0.6), 0 0 0 10px #f3d49b, 0 0 0 14px #ffcd7e;
+            transition: all 0.2s;
+            width: 100%;
+            height: auto;
+            max-width: 540px;
+            cursor: pointer;
+        }
+        .pointer-fixed {
+            width: 0;
+            height: 0;
+            border-left: 36px solid transparent;
+            border-right: 36px solid transparent;
+            border-top: 68px solid #ffcd7c;
+            filter: drop-shadow(0 8px 12px rgba(0,0,0,0.5));
+            position: relative;
+            top: -28px;
+            transform: rotate(0deg);
+        }
+        .pointer-fixed::after {
+            content: "✨";
+            position: absolute;
+            font-size: 32px;
+            left: -24px;
+            top: -74px;
+            color: #ffdd99;
+            text-shadow: 0 2px 5px #b45f1b;
+        }
+        .spin-btn {
+            margin-top: 30px;
+            background: linear-gradient(135deg, #FFB347, #FF7E33);
+            border: none;
+            font-size: 1.7rem;
+            font-weight: bold;
+            padding: 14px 42px;
+            border-radius: 80px;
+            color: #281a0a;
+            cursor: pointer;
+            font-family: inherit;
+            box-shadow: 0 10px 0 #9b4a1a;
+            transition: 0.08s linear;
+            letter-spacing: 2px;
+            display: inline-flex;
+            align-items: center;
+            gap: 14px;
+        }
+        .spin-btn:active {
+            transform: translateY(5px);
+            box-shadow: 0 5px 0 #9b4a1a;
+        }
+        .spin-btn:disabled {
+            opacity: 0.6;
+            transform: translateY(0);
+            cursor: not-allowed;
+            filter: grayscale(0.1);
+        }
+
+        /* 右侧面板 - 更精致 */
+        .topics-panel {
+            flex: 1.3;
+            min-width: 280px;
+            background: rgba(15, 28, 35, 0.75);
+            backdrop-filter: blur(16px);
+            border-radius: 56px;
+            padding: 24px 20px;
+            border: 1px solid rgba(255, 200, 120, 0.5);
+            box-shadow: 0 20px 35px rgba(0,0,0,0.4);
+        }
+        .panel-header {
+            font-size: 1.6rem;
+            font-weight: bold;
+            color: #FFF2DE;
+            border-left: 7px solid #ffaa44;
+            padding-left: 20px;
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+        }
+        .badge-count {
+            background: #ffaa44;
+            color: #1f2c2c;
+            border-radius: 80px;
+            padding: 5px 15px;
+            font-size: 0.9rem;
+            font-weight: bold;
+            box-shadow: inset 0 1px 3px rgba(0,0,0,0.1), 0 2px 4px rgba(0,0,0,0.2);
+        }
+        .topic-list {
+            max-height: 480px;
+            overflow-y: auto;
+            padding-right: 8px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        .topic-list::-webkit-scrollbar {
+            width: 6px;
+        }
+        .topic-list::-webkit-scrollbar-track {
+            background: #2f4553;
+            border-radius: 20px;
+        }
+        .topic-list::-webkit-scrollbar-thumb {
+            background: #ffae5a;
+            border-radius: 20px;
+        }
+        .topic-item {
+            background: rgba(30, 50, 58, 0.7);
+            border-radius: 80px;
+            padding: 10px 18px;
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            font-size: 0.95rem;
+            transition: all 0.2s;
+            border: 1px solid #618d9e;
+            backdrop-filter: blur(2px);
+            color: #f5f0e6;
+        }
+        .topic-index {
+            background: #ffb35c;
+            color: #1e2f2f;
+            font-weight: bold;
+            width: 34px;
+            height: 34px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 60px;
+            font-size: 0.9rem;
+            box-shadow: inset 0 1px 2px #fff2, 0 2px 5px #0003;
+        }
+        .topic-name {
+            flex: 1;
+            font-weight: 500;
+            letter-spacing: 0.3px;
+            word-break: break-word;
+        }
+        /* 高亮抽中的主题 */
+        .topic-item.highlight {
+            background: linear-gradient(115deg, #ffbc6e, #ff9640);
+            color: #201c0c;
+            font-weight: bold;
+            border-color: #ffeaac;
+            box-shadow: 0 0 15px #ffaa55;
+            transform: scale(1.01);
+        }
+        .topic-item.highlight .topic-index {
+            background: #fff0c0;
+            color: #b54900;
+        }
+        /* 已抽过的样式（淡灰+删除线） */
+        .topic-item.drawn {
+            background: #2f4049;
+            border-color: #6f8f9c;
+            opacity: 0.65;
+            filter: grayscale(0.1);
+            text-decoration: line-through;
+            color: #bbccd4;
+        }
+        .topic-item.drawn .topic-index {
+            background: #5f6e73;
+            color: #d1cfcf;
+            text-decoration: line-through;
+        }
+        .topic-item.drawn .topic-name {
+            text-decoration: line-through;
+            font-style: italic;
+        }
+
+        .result-area {
+            margin-top: 28px;
+            text-align: center;
+            background: rgba(0, 0, 0, 0.45);
+            border-radius: 56px;
+            padding: 16px 12px;
+            backdrop-filter: blur(8px);
+        }
+        .result-label {
+            font-size: 0.8rem;
+            letter-spacing: 3px;
+            color: #ffe2b3;
+        }
+        .result-value {
+            font-size: 1.8rem;
+            font-weight: 800;
+            background: linear-gradient(145deg, #FFE0A3, #FFB359);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            text-shadow: 0 1px 3px #00000040;
+            word-break: break-word;
+        }
+        .reset-btn {
+            margin-top: 20px;
+            background: rgba(255, 200, 140, 0.2);
+            border: 1px solid #ffb45e;
+            color: #ffddb0;
+            font-size: 0.85rem;
+            padding: 8px 18px;
+            border-radius: 80px;
+            cursor: pointer;
+            transition: 0.2s;
+            font-weight: bold;
+            backdrop-filter: blur(4px);
+        }
+        .reset-btn:hover {
+            background: #ff9f40cc;
+            color: #1f2b1f;
+            border-color: #fff0c0;
+        }
+        footer {
+            text-align: center;
+            font-size: 0.7rem;
+            margin-top: 28px;
+            color: #b8d0e0;
+            font-weight: 400;
+        }
+        @media (max-width: 780px) {
+            .wheel-container {
+                padding: 20px;
+            }
+            h1 { font-size: 1.9rem; }
+            .topic-item { font-size: 0.75rem; padding: 7px 12px; }
+            .result-value { font-size: 1.3rem; }
+            .spin-btn { font-size: 1.2rem; padding: 10px 28px; }
+        }
+    </style>
+</head>
+<body>
+<div class="wheel-container">
+    <div class="title-section">
+        <h1>🎡 无重复·灵感轮盘 🎨</h1>
+        <div class="sub">✨ 每抽一个消失 · 直至灵感枯竭 ✨</div>
+    </div>
+
+    <div class="main-dashboard">
+        <div class="wheel-area">
+            <div style="position: relative; display: inline-block;">
+                <canvas id="wheelCanvas" width="600" height="600" style="width:100%; height:auto; max-width:540px; aspect-ratio:1/1"></canvas>
+                <div style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none;">
+                    <div class="pointer-fixed" style="position: absolute; top: -28px; left: 50%; transform: translateX(-50%);"></div>
+                </div>
+            </div>
+            <button class="spin-btn" id="spinButton">🎲 转动抽选 🎲</button>
+            <button class="reset-btn" id="resetButton">⟳ 重置所有题目 ⟳</button>
+        </div>
+
+        <div class="topics-panel">
+            <div class="panel-header">
+                📜 同人命题库
+                <span class="badge-count" id="topicCount">0</span>
+            </div>
+            <div class="topic-list" id="topicListContainer">
+                <!-- 动态列表 -->
+            </div>
+            <div class="result-area">
+                <div class="result-label">🏆 本次抽中 🏆</div>
+                <div class="result-value" id="selectedTopicDisplay">✨ 待转动 ✨</div>
+            </div>
+        </div>
+    </div>
+    <footer>✔️ 每个主题仅能被抽中一次 | 已抽主题变灰不可选 | 重置后全部回归</footer>
+</div>
+
+<script>
+    // --------------------------------------------------------------
+    // 主题池（基于接龙完整列表44个）
+    // --------------------------------------------------------------
+    const fullTopicsList = [
+        "宝可梦", "动森", "哈利波特", "宫崎骏系列", "王者荣耀",
+        "蜡笔小新", "飞天小女警", "三丽鸥", "chiikawa", "小猪佩奇",
+        "百变小樱", "罗小黑", "哆啦A梦", "西游记", "数码宝贝",
+        "灌篮高手", "马丁的早晨", "猫和老鼠", "七龙珠", "龙凤双娃",
+        "拓麻歌子", "非人哉", "活力大湾鸡", "怪奇物语", "安徒生童话故事",
+        "玩具熊的午夜后宫", "喜人奇妙夜", "星期三", "胆大党", "超时空辉夜姬",
+        "武林外传", "星期三", "洛克王国", "漫威", "饥荒",
+        "守护甜心", "守望先锋", "塞尔达", "马里奥", "小黄人",
+        "瞬息全宇宙", "比卡丘", "光遇", "小马宝莉"
+    ];
+    
+    // ---------- 抽奖状态管理 ----------
+    let availableIndices = [];      // 存储当前未被抽过的原索引 (0 ~ total-1)
+    let drawnSet = new Set();       // 记录已抽过的索引
+    let currentRotation = 0;        // 转盘当前弧度
+    let animating = false;
+    let animFrame = null;
+    let spinDuration = 1800;
+    let startRotation = 0, targetRotation = 0;
+    let selectedIndex = -1;          // 最近抽中的原始索引
+    let currentSpinResolve = null;
+    
+    const TOTAL = fullTopicsList.length;
+    // 获取当前仍可抽取的主题（未被抽过）
+    function getAvailableTopics() {
+        return availableIndices.map(idx => fullTopicsList[idx]);
+    }
+    
+    // 重置抽选记录 (保留完整池)
+    function resetGame() {
+        drawnSet.clear();
+        availableIndices = [];
+        for (let i = 0; i < TOTAL; i++) {
+            availableIndices.push(i);
+        }
+        // 重置选中高亮以及结果
+        selectedIndex = -1;
+        selectedTopicDisplay.innerText = "✨ 重置完成 ✨";
+        // 重新渲染右侧列表 (更新样式)
+        renderTopicList();
+        // 转盘绘制但无需重绘角度 (但为了清除高亮，重绘)
+        drawWheel();
+        // 去除高亮条目
+        const items = document.querySelectorAll('.topic-item');
+        items.forEach(item => item.classList.remove('highlight'));
+        // 启用抽奖按钮（如果之前抽完了）
+        spinBtn.disabled = false;
+        // 附加提示
+        if(availableIndices.length === 0){
+            selectedTopicDisplay.innerText = "🎉 全抽完了，重置继续 🎉";
+        } else {
+            selectedTopicDisplay.innerText = "🎯 重置完成，继续创作 🎯";
+        }
+        // 清除当前抽中索引显示
+        selectedIndex = -1;
+    }
+    
+    // 抽选一个新的主题（从未抽过的池子里随机选一个原始索引）
+    function pickRandomUndrawnIndex() {
+        if (availableIndices.length === 0) return null;
+        const randomPos = Math.floor(Math.random() * availableIndices.length);
+        const chosenOriginalIdx = availableIndices[randomPos];
+        return chosenOriginalIdx;
+    }
+    
+    // 执行抽选：从剩余池子中随机选一个，然后从availableIndices中移除，加入drawnSet
+    function performDrawAndRemove() {
+        if (availableIndices.length === 0) {
+            // 没有题目可选时弹提示
+            selectedTopicDisplay.innerText = "🎉 所有主题都已抽完！请重置 🎉";
+            spinBtn.disabled = true;
+            return null;
+        }
+        const randomPos = Math.floor(Math.random() * availableIndices.length);
+        const chosenIdx = availableIndices[randomPos];
+        // 移除选中的索引
+        availableIndices.splice(randomPos, 1);
+        drawnSet.add(chosenIdx);
+        // 更新右侧UI显示已抽样式
+        renderTopicList();       // 重绘列表并同步drawn类
+        // 高亮当前抽中的题目
+        highlightTopicByIndex(chosenIdx);
+        selectedTopicDisplay.innerText = `${fullTopicsList[chosenIdx]}`;
+        selectedIndex = chosenIdx;
+        // 如果抽完后剩余0，禁用抽奖按钮并显示完成消息
+        if (availableIndices.length === 0) {
+            spinBtn.disabled = true;
+            selectedTopicDisplay.innerText = `🏆 终极大奖：${fullTopicsList[chosenIdx]} 🏆\n所有主题已完赛！重置继续`;
+        }
+        return chosenIdx;
+    }
+    
+    // 高亮某个原始索引对应的右侧列表项 (同时去除其他高亮)
+    function highlightTopicByIndex(origIdx) {
+        const items = document.querySelectorAll('.topic-item');
+        items.forEach((item, idx) => {
+            if (idx === origIdx) {
+                item.classList.add('highlight');
+                item.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            } else {
+                item.classList.remove('highlight');
+            }
+        });
+    }
+    
+    // 渲染右侧列表：根据原始顺序，展示每个主题，若在drawnSet中则添加 .drawn 类
+    function renderTopicList() {
+        const container = document.getElementById('topicListContainer');
+        container.innerHTML = '';
+        fullTopicsList.forEach((topic, idx) => {
+            const isDrawn = drawnSet.has(idx);
+            const div = document.createElement('div');
+            div.className = `topic-item ${isDrawn ? 'drawn' : ''}`;
+            div.innerHTML = `
+                <span class="topic-index">${idx + 1}</span>
+                <span class="topic-name">${escapeHtml(topic)}</span>
+            `;
+            container.appendChild(div);
+        });
+        document.getElementById('topicCount').innerText = `${availableIndices.length} / ${TOTAL}`;
+        // 如果有选中的索引且未重置时保留高亮
+        if (selectedIndex !== -1 && !drawnSet.has(selectedIndex)) {
+            // 理论上选中的一定在drawnSet里，但重置后可能需要
+            highlightTopicByIndex(selectedIndex);
+        } else if (selectedIndex !== -1 && drawnSet.has(selectedIndex)){
+            highlightTopicByIndex(selectedIndex);
+        } else {
+            // 清除高亮
+            document.querySelectorAll('.topic-item').forEach(item => item.classList.remove('highlight'));
+        }
+    }
+    
+    // 转盘绘制相关 =================================
+    const canvas = document.getElementById('wheelCanvas');
+    const ctx = canvas.getContext('2d');
+    const spinBtn = document.getElementById('spinButton');
+    const resetBtn = document.getElementById('resetButton');
+    
+    let width, height, centerX, centerY, radius;
+    let angleStep = (Math.PI * 2) / TOTAL;   // 注意扇区数是固定的全量44，转盘展示所有主题，但抽选时从剩余池选
+    // 为了转盘视觉效果，扇区永远展示全部主题（颜色固定），但抽选时逻辑基于剩余池，指针指向目标扇区
+    // 颜色生成器
+    const colorPalette = [];
+    for (let i = 0; i < TOTAL; i++) {
+        let hue = (i * 360 / TOTAL) % 360;
+        colorPalette.push(`hsl(${hue}, 70%, 62%)`);
+    }
+    
+    function resizeCanvas() {
+        const maxSize = Math.min(560, window.innerWidth - 80);
+        canvas.style.width = `${maxSize}px`;
+        canvas.style.height = `${maxSize}px`;
+        canvas.width = 600;
+        canvas.height = 600;
+        width = 600;
+        height = 600;
+        centerX = width / 2;
+        centerY = height / 2;
+        radius = width * 0.44;
+        drawWheel();
+    }
+    
+    function drawWheel() {
+        if (!ctx) return;
+        ctx.clearRect(0, 0, width, height);
+        ctx.save();
+        ctx.shadowBlur = 0;
+        for (let i = 0; i < TOTAL; i++) {
+            const start = i * angleStep + currentRotation;
+            const end = (i + 1) * angleStep + currentRotation;
+            ctx.beginPath();
+            ctx.moveTo(centerX, centerY);
+            ctx.arc(centerX, centerY, radius, start, end);
+            ctx.closePath();
+            ctx.fillStyle = colorPalette[i % colorPalette.length];
+            ctx.fill();
+            ctx.strokeStyle = "#2b211b";
+            ctx.lineWidth = 2;
+            ctx.stroke();
+        }
+        // 内圈装饰
+        ctx.beginPath();
+        ctx.arc(centerX, centerY, radius * 0.12, 0, Math.PI * 2);
+        ctx.fillStyle = "#ffdd99";
+        ctx.shadowBlur = 8;
+        ctx.fill();
+        ctx.beginPath();
+        ctx.arc(centerX, centerY, radius * 0.08, 0, Math.PI * 2);
+        ctx.fillStyle = "#e6a017";
+        ctx.fill();
+        ctx.shadowBlur = 0;
+        // 绘制数字标号
+        ctx.font = `bold ${Math.max(18, Math.floor(radius * 0.08))}px "Segoe UI", "Poppins"`;
+        ctx.fillStyle = "#FFF9E8";
+        ctx.shadowColor = "rgba(0,0,0,0.5)";
+        ctx.shadowBlur = 2;
+        for (let i = 0; i < TOTAL; i++) {
+            const midAngle = i * angleStep + angleStep / 2 + currentRotation;
+            const textRadius = radius * 0.72;
+            const x = centerX + Math.cos(midAngle) * textRadius;
+            const y = centerY + Math.sin(midAngle) * textRadius;
+            const number = (i + 1).toString();
+            ctx.save();
+            ctx.translate(x, y);
+            ctx.rotate(midAngle + Math.PI/2);
+            ctx.fillStyle = "#fff3e0";
+            ctx.font = `bold ${Math.floor(radius * 0.09)}px "Segoe UI"`;
+            ctx.fillText(number, -ctx.measureText(number).width / 2, 8);
+            ctx.restore();
+        }
+        ctx.beginPath();
+        ctx.arc(centerX, centerY, radius * 0.11, 0, Math.PI * 2);
+        ctx.fillStyle = "#f7bc45";
+        ctx.fill();
+        ctx.beginPath();
+        ctx.arc(centerX, centerY, radius * 0.07, 0, Math.PI * 2);
+        ctx.fillStyle = "#f58e1f";
+        ctx.fill();
+        ctx.restore();
+    }
+    
+    // 根据旋转弧度获取当前指针指向哪个原始索引（用于动画结束后展示）
+    function getCurrentSelectedIndexByRotation(rotationRad) {
+        const pointerAngle = -Math.PI / 2;
+        for (let i = 0; i < TOTAL; i++) {
+            let start = i * angleStep + rotationRad;
+            let end = (i + 1) * angleStep + rotationRad;
+            let normPointer = ((pointerAngle % (2 * Math.PI)) + 2 * Math.PI) % (2 * Math.PI);
+            let normStart = ((start % (2 * Math.PI)) + 2 * Math.PI) % (2 * Math.PI);
+            let normEnd = ((end % (2 * Math.PI)) + 2 * Math.PI) % (2 * Math.PI);
+            if (normStart < normEnd) {
+                if (normPointer >= normStart && normPointer < normEnd) return i;
+            } else {
+                if (normPointer >= normStart || normPointer < normEnd) return i;
+            }
+        }
+        return 0;
+    }
+    
+    // 动画旋转至指定目标索引 (视觉上指针指向该扇区)
+    function animateToTargetIndex(targetOrigIdx, callback) {
+        if (animating) return;
+        const pointerAngle = -Math.PI / 2;
+        const sectorCenterBase = targetOrigIdx * angleStep + angleStep / 2;
+        let desiredRotation = pointerAngle - sectorCenterBase;
+        desiredRotation = ((desiredRotation % (2 * Math.PI)) + 2 * Math.PI) % (2 * Math.PI);
+        let delta = desiredRotation - currentRotation;
+        delta = ((delta % (2 * Math.PI)) + 2 * Math.PI) % (2 * Math.PI);
+        const extraRounds = Math.floor(Math.random() * 8) + 7; // 7~14圈
+        const extraAngle = extraRounds * 2 * Math.PI;
+        const totalDelta = delta + extraAngle;
+        const targetRot = currentRotation + totalDelta;
+        startRotation = currentRotation;
+        targetRotation = targetRot;
+        const startTime = performance.now();
+        animating = true;
+        spinBtn.disabled = true;
+        function step(now) {
+            const elapsed = now - startTime;
+            let t = Math.min(1, elapsed / spinDuration);
+            const ease = 1 - Math.pow(1 - t, 3);
+            const newRot = startRotation + (targetRotation - startRotation) * ease;
+            currentRotation = newRot;
+            drawWheel();
+            if (t < 1) {
+                animFrame = requestAnimationFrame(step);
+            } else {
+                currentRotation = targetRotation;
+                currentRotation = ((currentRotation % (2 * Math.PI)) + 2 * Math.PI) % (2 * Math.PI);
+                drawWheel();
+                const finalIdx = getCurrentSelectedIndexByRotation(currentRotation);
+                if (callback) callback(finalIdx);
+                animating = false;
+                spinBtn.disabled = (availableIndices.length === 0);
+                cancelAnimationFrame(animFrame);
+                animFrame = null;
+            }
+        }
+        if (animFrame) cancelAnimationFrame(animFrame);
+        animFrame = requestAnimationFrame(step);
+    }
+    
+    // 主要抽选逻辑：无重复抽取 + 转盘动画指向该主题
+    function spinAndPick() {
+        if (animating) return;
+        if (availableIndices.length === 0) {
+            selectedTopicDisplay.innerText = "🎉 题库已空，请重置 🎉";
+            spinBtn.disabled = true;
+            return;
+        }
+        // 1. 执行抽取并更新记录 (从剩余池移除)
+        const chosenOrigIdx = performDrawAndRemove();
+        if (chosenOrigIdx === null) return;
+        // 2. 动画转到对应扇区
+        animateToTargetIndex(chosenOrigIdx, (finalIdx) => {
+            // 最终保证高亮的是抽中的那个
+            highlightTopicByIndex(chosenOrigIdx);
+            selectedTopicDisplay.innerText = `${fullTopicsList[chosenOrigIdx]}`;
+            selectedIndex = chosenOrigIdx;
+            if (availableIndices.length === 0) {
+                selectedTopicDisplay.innerText = `🏆 收官之作：${fullTopicsList[chosenOrigIdx]} 🏆\n全部灵感收集完毕！`;
+                spinBtn.disabled = true;
+            }
+        });
+    }
+    
+    function escapeHtml(str) {
+        return str.replace(/[&<>]/g, function(m) {
+            if (m === '&') return '&amp;';
+            if (m === '<') return '&lt;';
+            if (m === '>') return '&gt;';
+            return m;
+        });
+    }
+    
+    // 初始化状态
+    function initGame() {
+        resetGame();     // 初始全部可用
+        resizeCanvas();
+        drawWheel();
+        spinBtn.addEventListener('click', spinAndPick);
+        resetBtn.addEventListener('click', () => {
+            if (animating) return;
+            resetGame();
+            // 重置转盘角度不变，但清除高亮，刷新状态
+            drawWheel();
+            selectedTopicDisplay.innerText = "✨ 已重置，继续创作 ✨";
+            spinBtn.disabled = false;
+        });
+        window.addEventListener('resize', () => {
+            resizeCanvas();
+            drawWheel();
+        });
+    }
+    
+    initGame();
+</script>
+</body>
+</html>
+```
